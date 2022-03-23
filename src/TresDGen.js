@@ -1,3 +1,6 @@
+const ForceGraph3D = require('3d-force-graph');
+const SpriteText = require('three-spritetext');
+
 class TresDGen {
 
     run(gData, id) {
