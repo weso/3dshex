@@ -1,5 +1,5 @@
-const ForceGraph3D = require('3d-force-graph');
-const SpriteText = require('three-spritetext');
+import ForceGraph3D from '3d-force-graph';
+import SpriteText from 'three-spritetext';
 
 class TresDGen {
 
@@ -28,9 +28,10 @@ class TresDGen {
         let activeTooltip = false;
         let activeElement = null;
         let collapse = false;
+		
+		const Graph = ForceGraph3D();
 
-        const Graph = ForceGraph3D()
-            (document.getElementById(id))
+        Graph(document.getElementById(id))
             .graphData(gData)
             .nodeAutoColorBy('id')
             .nodeRelSize(2)
