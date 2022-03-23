@@ -1,6 +1,6 @@
 class TresDGen {
 
-    run(gData) {
+    run(gData, id) {
         gData.links.forEach(link => {
             const a = gData.nodes.find(obj => {
                 return obj.id === link.source
@@ -27,7 +27,7 @@ class TresDGen {
         let collapse = false;
 
         const Graph = ForceGraph3D()
-            (document.getElementById('3d-graph'))
+            (document.getElementById(id))
             .graphData(gData)
             .nodeAutoColorBy('id')
             .nodeRelSize(2)

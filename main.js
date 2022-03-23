@@ -1,20 +1,7 @@
 const shexParser = require("./src/ShExParser.js");
 const TresDGen = require("./src/TresDGen.js");
 
-if(document.getElementById("shextext") !== null) {
-    shExEditor = CodeMirror.fromTextArea(document.getElementById("shextext"), {
-        mode: "shex",
-        lineNumbers: true
-    });
-    let theme = sessionStorage.getItem("theme");
-    shExEditor.setOption("theme", "ayu-mirage");
-}
-
-let shxtx = $('#shextograph');
-shxtx.click(shExTo3D);
-
-function shExTo3D() {
-	let text = shExEditor.getValue();
+function shExTo3D(text, id) {
 	let gData = null;
 	
 	try {
@@ -24,23 +11,12 @@ function shExTo3D() {
 	}
 	
 	try {
-		TresDGen.run(gData);
+		TresDGen.run(gData, id);
 	} catch(ex) {
 		alert("An error has occurred when generating the visualization: \n" + ex);
 	}
-	
-	
-
-	$("#editorcontainer").css("display", "none");
-	$("#graphcontainer").css("display", "inherit");
 }
 
-let load = $('#loadex');
-
-load.click(loadExample);
-
-function loadExample() {
-	$.get('./static/genewiki.shex.txt', function(data) {
-		shExEditor.setValue(data);
-	});
+module.exports = {
+    shExTo3D
 }
