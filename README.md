@@ -1,12 +1,35 @@
 # 3dshex
 
-## Funcionalidad
-* Los nodos se colorean individualmente.
-* Las relaciones se colorean acorde al nodo de origen.
-* Las relaciones se resaltan al sobrevolarlas el ratón (y se muestra la etiqueta)
-* Todas las relaciones de un nodo se resaltan al sobrevolarlo el ratón.
-* Tooltips de wikidata al sobrevolar un nodo o una relación.
-* Zoom automático al hacer clic izquierdo sobre un nodo.
-* Mostrar únicamente sus relaciones y vecinos al hacer clic derecho sobre un nodo (un segundo clic restituye el grafo).
+## Current functionality
+* Nodes are individually colored.
+* Relationships are colored according to its node.
+* Relationships are highlighted when hovering (and its label shown).
+* When hovering a node, all its relationships are highlighted.
+* Wikidata Tooltips when hovering over a node or a relationships.
+* Automatic Zoom when left-clicking a node.
+* When right-clicking a node, it exclusively show its relationships and neighbours. A second click reinstates the whole graph.
 
-_Ahora permite indicar cualquier entrada, pero no está planteado más que para relaciones simples entre entidades. Cualquier otro experimento, a su discreción._
+_For now it should allow any input, but it is solely intended for simple relationships between entities. Anything beyond such prospects has not been implemented nor tested._
+
+## How to use
+
+Install with the following command:
+
+```
+npm install 3dshex
+```
+
+Once installed, import the function. For instance:
+
+```
+import shExTo3D from "3dshex";
+```
+
+This function creates a 3DGraph in the specified component, given a ShEx.
+
+```
+shExTo3D(shex, "3dgraph");	
+```
+
+In this example, we are passing as a parameter a String variable (_shex_) which contains a ShEx-compliant value, 
+as well as the reference to a \<div\> ID  (_3dgraph_) .
