@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "build": "browserify main.js > index.js"
+    "build": "browserify public/main.js  -p esmify > public/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +14,8 @@
     "jquery": "^3.6.0",
     "shex": "^0.9.2",
     "three-spritetext": "^1.6.5"
+  },
+  "devDependencies": {
+    "esmify": "^2.1.1"
   }
 }
