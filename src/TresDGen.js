@@ -1,5 +1,6 @@
 import ForceGraph3D from '3d-force-graph';
 import SpriteText from 'three-spritetext';
+import $ from "jquery";
 
 class TresDGen {
 
@@ -279,4 +280,4 @@ class TresDGen {
 
 
 }
-module.exports = new TresDGen();
+export default new TresDGen();

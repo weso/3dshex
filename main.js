@@ -1,5 +1,5 @@
 const shexParser = require("./src/ShExParser.js");
-const TresDGen = require("./src/TresDGen.js");
+import TresDGen from './src/TresDGen.js';
 
 function shExTo3D(text, id) {
 	let gData = null;
@@ -17,6 +17,4 @@ function shExTo3D(text, id) {
 	}
 }
 
-module.exports = {
-    shExTo3D
-}
+export default shExTo3D;
