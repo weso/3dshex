@@ -1,20 +1,31 @@
-const shexParser = require("./src/ShExParser.js");
-import TresDGen from './src/TresDGen.js';
+import shExTo3D from "../main.js";
 
-function shExTo3D(text, id) {
-	let gData = null;
-	
-	try {
-		gData = shexParser.parseShExToGraph(text);
-	} catch(ex) {
-		alert("An error has occurred when generating the graph data: \n" + ex);
-	}
-	
-	try {
-		TresDGen.run(gData, id);
-	} catch(ex) {
-		alert("An error has occurred when generating the visualization: \n" + ex);
-	}
+if(document.getElementById("shextext") !== null) {
+    var shExEditor = CodeMirror.fromTextArea(document.getElementById("shextext"), {
+        mode: "shex",
+        lineNumbers: true
+    });
+    let theme = sessionStorage.getItem("theme");
+    shExEditor.setOption("theme", "ayu-mirage");
 }
 
-export default shExTo3D;
+let shxtx = $('#shextograph');
+shxtx.click(sshExTo3D);
+
+function sshExTo3D() {
+	let text = shExEditor.getValue();
+	shExTo3D(text, "3d-graph");
+
+	$("#editorcontainer").css("display", "none");
+	$("#graphcontainer").css("display", "inherit");
+}
+
+let load = $('#loadex');
+
+load.click(loadExample);
+
+function loadExample() {
+	$.get('./static/genewiki.shex.txt', function(data) {
+		shExEditor.setValue(data);
+	});
+}
