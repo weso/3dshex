@@ -1,0 +1,23 @@
+PREFIX wde: <http://www.wikidata.org/entity/>
+PREFIX schema: <http://www.wikidata.org/entity/>
+PREFIX xsd: <http://www.wikidata.org/entity/>
+PREFIX :    <http://example.org/>
+
+start=@:User
+
+:User { 
+
+schema:worksFor @:Company ; 
+  schema:wo @:Company ; 
+  schema:a @:Company ; 
+  schema:b @:Company ;
+schema:knows @:User; 
+
+} 
+
+:Company {
+  schema:worker @:User ; 
+  schema:asalariado @:User ;
+    schema:s @:User ; 
+  schema:d @:User ; 
+}

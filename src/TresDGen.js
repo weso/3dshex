@@ -37,11 +37,11 @@ class TresDGen {
             .nodeAutoColorBy('id')
             .nodeRelSize(2)
             .linkWidth(link => highlightLinks.has(link) ? 1 : 1)
-            .linkDirectionalParticles(link => highlightLinks.has(link) ? 4 : 0)
-            .linkDirectionalParticleWidth(2)
+            .linkDirectionalParticles(link => highlightLinks.has(link) ? 2 : 0)
+            .linkDirectionalParticleWidth(1)
             //.linkColor(link => highlightLinks.has(link) ? 'rgba(255,0,0,0.8)' : 'rgba(255,255,255,0.8)')
-            .linkCurvature(0.2)
-            .linkCurveRotation(0)
+            .linkCurvature(0.8)          
+			.linkCurveRotation('rotation')
             .linkDirectionalArrowLength(3.5)
             .linkDirectionalArrowRelPos(1)
             .linkAutoColorBy(d => gData.nodes.find(obj => {
@@ -56,19 +56,33 @@ class TresDGen {
                 sprite.textHeight = 3;
                 return sprite;
             })
-            //.linkThreeObjectExtend(true)
-            //.linkThreeObject(link => {
-            //  const sprite = new SpriteText(`${link.name}`);
-            //  sprite.color = 'lightgrey';
-            //  sprite.textHeight = 1.5;
-            //  return sprite;
-            //})
-            //.linkPositionUpdate((sprite, { start, end }) => {
-            //  const middlePos = Object.assign(...['x', 'y', 'z'].map(c => ({
-            //    [c]: start[c] + (end[c] - start[c]) / 2 // calc middle point
-            //  })));
-            //  Object.assign(sprite.position, middlePos);
-            //})
+            .linkThreeObjectExtend(true)
+            .linkThreeObject(link => {
+              const sprite = new SpriteText(`${link.nname}`);
+              sprite.color = 'lightgrey';
+              sprite.textHeight = 1.5;
+			  sprite.link = link;
+              return sprite;
+            })
+            .linkPositionUpdate((sprite, { start, end }) => {
+			  let textPos = getQuadraticXYZ(
+				0.5,
+				start,
+				sprite.link.__curve.v1,
+				end
+			  );
+			  if(sprite.link.source === sprite.link.target) {
+				  console.log(sprite.link);
+				  textPos = getQuadraticXYZ(
+					0.5,
+					sprite.link.__curve.v1,
+					sprite.link.__curve.v2,
+					sprite.link.__curve.v3
+				  );
+			  }
+	
+              Object.assign(sprite.position, textPos);
+            })
             .onNodeHover(async (node) => {
                 // no state change
                 if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
@@ -151,7 +165,8 @@ class TresDGen {
                         let newLink = {
                             source: link.source.id,
                             target: link.target.id,
-                            name: link.name
+                            nname: link.nname,
+							rotation: link.rotation
                         };
                         visibleLinks.push(newLink);
                     });
@@ -165,6 +180,14 @@ class TresDGen {
                     collapse = false;
                 }
             });
+			
+		function getQuadraticXYZ(t, s, cp1, e) {
+		  return {
+			x: (1 - t) * (1 - t) * s.x + 2 * (1 - t) * t * cp1.x + t * t * e.x,
+			y: (1 - t) * (1 - t) * s.y + 2 * (1 - t) * t * cp1.y + t * t * e.y,
+			z: (1 - t) * (1 - t) * s.z + 2 * (1 - t) * t * cp1.z + t * t * e.z
+		  };
+		}
 
         function updateHighlight() {
             // trigger update of highlighted objects in scene
@@ -276,6 +299,7 @@ class TresDGen {
         }
 
         Graph.d3Force('charge').strength(-240);
+		return Graph;
     }
 
 

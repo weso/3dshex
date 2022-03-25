@@ -3,7 +3,7 @@ import TresDGen from './src/TresDGen.js';
 
 function shExTo3D(text, id) {
 	let gData = null;
-	
+	let graph;
 	try {
 		gData = shexParser.parseShExToGraph(text);
 	} catch(ex) {
@@ -11,10 +11,11 @@ function shExTo3D(text, id) {
 	}
 	
 	try {
-		TresDGen.run(gData, id);
+		graph = TresDGen.run(gData, id);
 	} catch(ex) {
 		alert("An error has occurred when generating the visualization: \n" + ex);
 	}
+	return graph;
 }
 
 export default shExTo3D;
