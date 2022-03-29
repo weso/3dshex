@@ -1,17 +1,18 @@
+const Cardinality = require ("./ggen/Cardinality.js");
+const Enum = require ("./ggen/Enum.js");
+
 class GraphGenerator {
 
-    constructor () {
-		this.prefixes = null;
-		this.shapes = null;
+    constructor (pr) {
 		this.gData = {nodes: [],links: []}
 		this.linkID = 0;
 		this.nodePairs = new Map();
+		this.pr = pr;
+		this.enu = new Enum(pr);
     }
 	
 	createGraph(shapes) {
-		//console.log(shapes);
 		for(let shape in shapes) {
-			console.log(shapes[shape]);
 			if(shapes[shape].type === "Shape") {
 				this.checkExpressions(shapes[shape], shape)
 			}
@@ -32,6 +33,7 @@ class GraphGenerator {
 	checkExpressions(shape, name) {
 		try {
 		let instanceOf = null;
+		let attrs = [];
 		if(shape.expression) {	
 			let expressions = shape.expression.predicate ? [shape.expression] : shape.expression.expressions;
 			for(let exp in expressions) {
@@ -41,22 +43,65 @@ class GraphGenerator {
 					if(expression.predicate === "http://www.wikidata.org/entity/P31") {
 						instanceOf = expression.valueExpr.values[0].split("/")[4]; 
 					}
-					else if(expression.valueExpr && expression.valueExpr.type === "ShapeRef") {					
-						let newLink = { linkID: ++this.linkID, source: name.split("/").at(-1), target:expression.valueExpr.reference.split("/").at(-1), 
-							nname:expression.predicate.split("/").at(-1)}
+					else if(expression.valueExpr && expression.valueExpr.type === "ShapeRef") {
+						let card = Cardinality.cardinalityOf(expression);
+						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target:this.pr.getPrefixed(expression.valueExpr.reference), 
+							nname: this.pr.getPrefixed(expression.predicate), cardinality: card}
 						this.gData.links.push(newLink);
 						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+					}
+					else if (expression.valueExpr) {
+						let ncValue = this.checkNodeConstraint(expression, name);
+						if(ncValue) {
+							let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": ncValue };
+							attrs.push(attr);
+						}	
+					}
+					else {
+						let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": "." };
+						attrs.push(attr);
 					}
 				}
 				
 			}
 		}
-		let newNode = {id:name.split("/").at(-1), p31:instanceOf}
+		let newNode = {id: this.pr.getPrefixed(name), p31:instanceOf, attributes: attrs}
 		this.gData.nodes.push(newNode);
 		} catch (ex) {
 			throw new Error("At " + name + ": " + ex);
 		}
 	}
+	
+	checkNodeConstraint(expr, name) {
+		let card = Cardinality.cardinalityOf(expr);
+        //Conjunto de valores -> enumeración
+        if(expr.valueExpr.values) {
+            //Relación de tipo "a" ( a [:User])
+            if(expr.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
+				let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: this.pr.getPrefixed(expr.valueExpr.values[0]), 
+							nname: this.pr.getPrefixed(expression.predicate)}
+				this.gData.links.push(newLink);
+				return false;
+            }
+			let pValues = this.enu.createEnumeration(expr.valueExpr.values);
+			
+			return "[" + pValues.join(" ") + "]" + card;
+        }
+        //Tipo de nodo (Literal, IRI...) -> Atributo con tal tipo
+        if(expr.valueExpr.nodeKind) {
+			return expr.valueExpr.nodeKind + card;
+        }
+        //Tipo de dato -> atributo común
+        if(expr.valueExpr.datatype) {
+			return this.pr.getPrefixed(expr.valueExpr.datatype) + card;
+        }
+		if(expr.valueExpr.pattern) {
+			return expr.valueExpr.pattern + card;
+		}
+
+        return "." + card;
+	}
+	
 	
 	linkNodePair(source, target, linkID) {
 		let linksst = this.nodePairs.get(source + "-" + target);
@@ -94,9 +139,9 @@ class GraphGenerator {
 	}
 	
 	reset() {
-		this.prefixes = null;
-		this.shapes = null;
 		this.gData = {nodes: [],links: []}
+		this.linkID = 0;
+		this.nodePairs = new Map();
 	}
 	
 

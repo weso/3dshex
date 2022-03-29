@@ -1,12 +1,12 @@
-PREFIX wde: <http://www.wikidata.org/entity/>
-PREFIX schema: <http://www.wikidata.org/entity/>
-PREFIX xsd: <http://www.wikidata.org/entity/>
+PREFIX schema: <https://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 PREFIX :    <http://example.org/>
 
 start=@:User
 
 :User { 
-
+schema:name xsd:string;
+schema:gender [:male :female];
 schema:worksFor @:Company ; 
   schema:wo @:Company ; 
   schema:a @:Company ; 

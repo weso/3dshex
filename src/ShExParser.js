@@ -1,5 +1,6 @@
 const shexp = require('shex').Parser;
 const GraphGenerator = require ("./GraphGenerator.js");
+const Prefix = require ("./ggen/Prefix.js");
 
 class ShExParser {
 
@@ -10,7 +11,8 @@ class ShExParser {
     this.shexparser._setBase("http://example.org/");
     this.shexparser._setFileName("Shapes.shex");
 
-    this.gg = new GraphGenerator();
+	this.pr = new Prefix();
+	this.gg = new GraphGenerator(this.pr);
 	
 	this.prefixes = new Map();
   }
@@ -25,13 +27,12 @@ class ShExParser {
     let source = this.parseShEx(shex);
     
     //Guardar prefijos
-    this.prefixes.set(source.base, "base");
+    this.pr.base = source.base;
     for(let prefix in source.prefixes) {
-      this.prefixes.set(source.prefixes[prefix], prefix);
-      }
+		this.prefixes.set(source.prefixes[prefix], prefix);
+    }
 
-	this.gg.prefixes = this.prefixes;
-	this.gg.shapes = source.shapes;
+	this.pr.prefixes = this.prefixes;
 	
   
 	return this.gg.createGraph(source.shapes);

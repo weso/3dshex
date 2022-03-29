@@ -1,8 +1,39 @@
 import ForceGraph3D from '3d-force-graph';
+import * as THREE from 'three';
+import {CSS2DRenderer, CSS2DObject} from './CSS2DRenderer.js'
 import SpriteText from 'three-spritetext';
 import $ from "jquery";
 
 class TresDGen {
+	
+	constructor () {
+		this.changingDetails = false;
+		this.styles ={
+					title:{
+					  'text-align': 'left',
+					  'font-size':17,
+					  'font-family': 'Arial, Helvetica, sans-serif'
+					},
+					description:{
+					  'display': 'inline-block',
+					  'line-height': '23px',
+					  'text-align': 'left',
+					  'margin-top': '3px',
+					  'font-size':14,
+					  'font-family': 'Arial, Helvetica, sans-serif'
+					},
+					dark:{
+					  'display': 'inline-block',
+					  'justify-content': 'center',
+					  'padding': '5px',
+					  'border-radius': '10px',
+					  'border': '1px solid #70dbe9',
+					  'background':'#222',
+					  'color':'white',
+					  'z-index':'1200'
+					}
+				  }
+	}
 
     run(gData, id) {
         gData.links.forEach(link => {
@@ -30,16 +61,23 @@ class TresDGen {
         let activeElement = null;
         let collapse = false;
 		
-		const Graph = ForceGraph3D();
+		const Graph = ForceGraph3D({
+		  extraRenderers: [new CSS2DRenderer()]
+		});
 
         Graph(document.getElementById(id))
             .graphData(gData)
             .nodeAutoColorBy('id')
             .nodeRelSize(2)
+			.onNodeDragEnd(node => {
+			  node.fx = node.x;
+			  node.fy = node.y;
+			  node.fz = node.z;
+			})
             .linkWidth(link => highlightLinks.has(link) ? 1 : 1)
             .linkDirectionalParticles(link => highlightLinks.has(link) ? 2 : 0)
             .linkDirectionalParticleWidth(1)
-            //.linkColor(link => highlightLinks.has(link) ? 'rgba(255,0,0,0.8)' : 'rgba(255,255,255,0.8)')
+            //.linkColor(link => highlightLinks.has(link) ? 'rgba(255,0,0,0.8)' : 'rgb(0,255,255,0.8)')
             .linkCurvature(0.8)          
 			.linkCurveRotation('rotation')
             .linkDirectionalArrowLength(3.5)
@@ -47,20 +85,28 @@ class TresDGen {
             .linkAutoColorBy(d => gData.nodes.find(obj => {
                 return obj.id === d.source
             }).id)
-            //.nodeThreeObjectExtend(true)
+            .nodeThreeObjectExtend(true)
             .nodeThreeObject(node => {
+				const nodeEl = document.createElement('div');
+				nodeEl.textContent = node.id;
+				nodeEl.id = node.id;
+				Object.assign(nodeEl.style, this.styles.dark);
+				nodeEl.style["font-size"] = 12;
+				nodeEl.className = "node-label";				
+				return new CSS2DObject(nodeEl);
+				/**
                 const sprite = new SpriteText(node.id);
-                //sprite.material.depthWrite = true;
                 sprite.color = 'rgba(255,255,255,1)';
                 sprite.backgroundColor = 'rgba(0,0,0,1)';
                 sprite.textHeight = 3;
                 return sprite;
+				**/
             })
             .linkThreeObjectExtend(true)
             .linkThreeObject(link => {
-              const sprite = new SpriteText(`${link.nname}`);
+              const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
               sprite.color = 'lightgrey';
-              sprite.textHeight = 1.5;
+              sprite.textHeight = 2;
 			  sprite.link = link;
               return sprite;
             })
@@ -72,7 +118,6 @@ class TresDGen {
 				end
 			  );
 			  if(sprite.link.source === sprite.link.target) {
-				  console.log(sprite.link);
 				  textPos = getQuadraticXYZ(
 					0.5,
 					sprite.link.__curve.v1,
@@ -90,18 +135,18 @@ class TresDGen {
                 highlightNodes.clear();
                 highlightLinks.clear();
                 if (node) {
-                    if (activeElement !== node.p31) $(".wikidata_tooltip").remove();
-                    activeElement = node.p31;
+                    if (activeElement !== node.p31) $(".wikidata_tooltip").remove();                  
                     highlightNodes.add(node);
                     if (node.neighbors) node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
                     if (node.links) node.links.forEach(link => highlightLinks.add(link));
-                    if (node.p31 && !activeTooltip) {
+                    if (node.p31 && !activeTooltip && activeElement !== node.p31) {
                         activeTooltip = true;
+						activeElement = node.p31;
                         let endpoint = "https://www.wikidata.org/w/"
                         let data = await checkEntity(node.p31, endpoint)
                         let posX = 0,
                             posY = 0 + $(window).scrollTop();
-                        loadTooltip(data, node.p31, posX, posY);
+                        loadTooltip(data, node.p31, posX, posY, this);
                         activeTooltip = false;
                     }
                 }
@@ -115,41 +160,39 @@ class TresDGen {
                 highlightLinks.clear();
 
                 if (link) {
-                    if (activeElement !== link.name) $(".wikidata_tooltip").remove();
-                    highlightLinks.add(link);
-                    activeElement = link.name;
+                    if (activeElement !== link.nname) $(".wikidata_tooltip").remove();
+                    highlightLinks.add(link);                  
                     highlightNodes.add(link.source);
                     highlightNodes.add(link.target);
-                    if (link.name && !activeTooltip) {
+                    if (link.nname && !activeTooltip && activeElement !== link.nname) {
                         activeTooltip = true;
+						activeElement = link.nname;
                         let endpoint = "https://www.wikidata.org/w/"
-                        let data = await checkEntity(link.name, endpoint)
+						let noPrefix = link.nname.split(":").at(-1);
+                        let data = await checkEntity(noPrefix, endpoint)
                         let posX = 0,
                             posY = 0 + $(window).scrollTop();
-                        loadTooltip(data, link.name, posX, posY);
+                        loadTooltip(data, noPrefix, posX, posY, this);
                         activeTooltip = false;
                     }
                 }
 
                 updateHighlight();
             })
-            .onNodeClick(node => {
-                const distance = 120;
-                const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
-                Graph.cameraPosition({
-                        x: node.x * distRatio,
-                        y: node.y * distRatio,
-                        z: node.z * distRatio
-                    },
-                    node,
-                    3000
-                );
-            })
+			.onNodeClick(node => {	
+				if(!this.changingDetails) {
+					let self = this;
+					loadDetails(node, self);
+				}
+			})
             .onNodeRightClick(node => {
 
                 if (!collapse) {
                     let visibleNodes = [];
+					visibleNodes.push({
+                            id: node.id,
+                            p31: node.p31
+                    });
                     node.neighbors.forEach(node => {
                         let newNode = {
                             id: node.id,
@@ -188,6 +231,37 @@ class TresDGen {
 			z: (1 - t) * (1 - t) * s.z + 2 * (1 - t) * t * cp1.z + t * t * e.z
 		  };
 		}
+		
+		function loadDetails(node, slf) {
+			let nodeOb = $("#" + $.escapeSelector(node.id));
+			if(nodeOb.attr("class") && nodeOb.attr("class").includes("activeDetails")) {
+				nodeOb.removeClass("activeDetails");
+				nodeOb.html("");
+				nodeOb			
+					.append(
+					  $('<div>').text(node.id).css("font-size", 12));
+				nodeOb.css("pointer-events", "none");
+				nodeOb.css("cursor", "auto");
+				nodeOb.unbind("click");
+				slf.changingDetails = true;
+				setTimeout(function() {
+					slf.changingDetails = false;
+				}, 100);
+			}
+			else {
+				let ats = node.attributes.map(a => { return "<li>" + a.predicate + " " + a.value + ";</li>"});
+				nodeOb.html("");
+				nodeOb			
+					.append(
+					  $('<div>').text(node.id).css(slf.styles.title))
+					.append(
+					  $('<div>').html('<ul style="list-style-type: none; padding: 0; margin: 0;">' + ats.join("\n") + "</ul>").css(slf.styles.description));
+				nodeOb.attr("class", "activeDetails");
+				nodeOb.css("pointer-events", "auto");
+				nodeOb.css("cursor", "pointer");
+				nodeOb.click(() => loadDetails(node, slf));
+			}
+		}
 
         function updateHighlight() {
             // trigger update of highlighted objects in scene
@@ -206,7 +280,7 @@ class TresDGen {
 
         }
 
-        function loadTooltip(data, wikiElement, posX, posY) {
+        function loadTooltip(data, wikiElement, posX, posY, slf) {
             if (!data.error) {
 
                 var userLang;
@@ -236,49 +310,7 @@ class TresDGen {
                     }
 
                 }
-
-                const themeStyles = {
-                    default: {
-                        'display': 'inline-block',
-                        'justify-content': 'center',
-                        'padding': '10px',
-                        'border-radius': '8px',
-                        'border': '1px solid #B8F5F3',
-                        'background': 'white',
-                        'color': '#222',
-                        'z-index': '1500'
-                    },
-                    dark: {
-                        'display': 'inline-block',
-                        'justify-content': 'center',
-                        'padding': '5px',
-                        'border-radius': '10px',
-                        'border': '1px solid #70dbe9',
-                        'background': '#222',
-                        'color': 'white',
-                        'z-index': '1500',
-                        'position': 'absolute'
-                    }
-                }
-
-                const styles = {
-                    title: {
-                        'text-align': 'left',
-                        'font-size': 17,
-                        'font-family': 'Arial, Helvetica, sans-serif'
-                    },
-                    description: {
-                        'display': 'inline-block',
-                        'line-height': '23px',
-                        'text-align': 'left',
-                        'margin-top': '3px',
-                        'font-size': 14,
-                        'font-family': 'Arial, Helvetica, sans-serif'
-                    }
-                }
-
-                let cssStyle = themeStyles['dark'];
-
+				
                 $('#tooltip')
                     .css('position', 'absolute')
                     .css('z-index', '2000')
@@ -289,15 +321,15 @@ class TresDGen {
                     })
                     .addClass('wikidataTooltip').css('height', 'auto')
                     .append(
-                        $('<div class="wikidata_tooltip">').css(cssStyle)
+                        $('<div class="wikidata_tooltip">').css(slf.styles.dark)
                         .append(
-                            $('<div>').html(entity).css(styles.title))
+                            $('<div>').html(entity).css(slf.styles.title))
                         .append(
-                            $('<div>').html(description).css(styles.description)))
+                            $('<div>').html(description).css(slf.styles.description)))
                     .appendTo('body').fadeIn('slow');
             }
         }
-
+	
         Graph.d3Force('charge').strength(-240);
 		return Graph;
     }
