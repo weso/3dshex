@@ -1,4 +1,5 @@
 const Cardinality = require ("./ggen/Cardinality.js");
+const Constraint = require ("./ggen/Constraint.js");
 const Enum = require ("./ggen/Enum.js");
 
 class GraphGenerator {
@@ -9,21 +10,33 @@ class GraphGenerator {
 		this.nodePairs = new Map();
 		this.pr = pr;
 		this.enu = new Enum(pr);
+		this.co = new Constraint(pr);
     }
 	
 	createGraph(shapes) {
 		for(let shape in shapes) {
-			if(shapes[shape].type === "Shape") {
-				this.checkExpressions(shapes[shape], shape)
+			let sh = shapes[shape];
+			let newNode;
+			console.log(sh);
+			if(sh.type === "Shape") {
+				newNode = this.checkExpressions(sh, shape)
 			}
-			else if (shapes[shape].type === "ShapeAnd") {
-				for(let sh in shapes[shape].shapeExprs) {
-					if(shapes[shape].shapeExprs[sh].type === "Shape") {
-						this.checkExpressions(shapes[shape].shapeExprs[sh], shape)
+			else if (sh.type === "ShapeAnd") {
+				for(let sha in sh.shapeExprs) {
+					if(sh.shapeExprs[sha].type === "Shape") {
+						this.checkExpressions(sh.shapeExprs[sha], shape)
 					}
 				}
 			}
+			else if (sh.type === "NodeConstraint") {
+				newNode = {id: this.pr.getPrefixed(shape), attributes: [{ "predicate": this.checkNodeKind(sh.nodeKind), "value" : "", "facets": "" }]}
+			}
 			
+			if(sh.closed === true) newNode.closed = true;
+			if(sh.extra !== undefined) {
+				newNode.extra = this.co.getExtra(sh.extra);
+			}
+			this.gData.nodes.push(newNode);
 		}
 		this.calculateRotation();
 		console.log(this.gData);
@@ -36,8 +49,9 @@ class GraphGenerator {
 		let attrs = [];
 		if(shape.expression) {	
 			let expressions = shape.expression.predicate ? [shape.expression] : shape.expression.expressions;
-			for(let exp in expressions) {
+			for(let exp in expressions) {		
 				let expression = expressions[exp]
+				console.log(expression);
 
 				if(expression.type === "TripleConstraint") {
 					if(expression.predicate === "http://www.wikidata.org/entity/P31") {
@@ -53,7 +67,10 @@ class GraphGenerator {
 					else if (expression.valueExpr) {
 						let ncValue = this.checkNodeConstraint(expression, name);
 						if(ncValue) {
-							let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": ncValue };
+							let facets = this.co.checkFacets(expression.valueExpr);
+							if(facets !== "") ncValue = ncValue.replace(".", "");
+							let pred = expression.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" ? "a" : this.pr.getPrefixed(expression.predicate);
+							let attr = { "predicate": pred, "value": ncValue, "facets": facets };
 							attrs.push(attr);
 						}	
 					}
@@ -66,7 +83,7 @@ class GraphGenerator {
 			}
 		}
 		let newNode = {id: this.pr.getPrefixed(name), p31:instanceOf, attributes: attrs}
-		this.gData.nodes.push(newNode);
+		return newNode;		
 		} catch (ex) {
 			throw new Error("At " + name + ": " + ex);
 		}
@@ -77,29 +94,35 @@ class GraphGenerator {
         //Conjunto de valores -> enumeración
         if(expr.valueExpr.values) {
             //Relación de tipo "a" ( a [:User])
+			/**
             if(expr.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
 				let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: this.pr.getPrefixed(expr.valueExpr.values[0]), 
-							nname: this.pr.getPrefixed(expression.predicate)}
+							nname: this.pr.getPrefixed(expr.predicate)}
 				this.gData.links.push(newLink);
 				return false;
             }
+			**/
 			let pValues = this.enu.createEnumeration(expr.valueExpr.values);
 			
 			return "[" + pValues.join(" ") + "]" + card;
         }
         //Tipo de nodo (Literal, IRI...) -> Atributo con tal tipo
         if(expr.valueExpr.nodeKind) {
-			return expr.valueExpr.nodeKind + card;
+			return this.checkNodeKind(expr.valueExpr.nodeKind) + card;
         }
         //Tipo de dato -> atributo común
         if(expr.valueExpr.datatype) {
 			return this.pr.getPrefixed(expr.valueExpr.datatype) + card;
         }
-		if(expr.valueExpr.pattern) {
-			return expr.valueExpr.pattern + card;
-		}
 
         return "." + card;
+	}
+	
+	checkNodeKind(nk) {
+		if(nk === "literal") return "Literal"
+		else if(nk === "iri") return "IRI"
+		else if(nk === "bnode") return "BNode"
+		else if(nk === "nonliteral") return "NonLiteral"
 	}
 	
 	

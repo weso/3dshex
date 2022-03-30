@@ -12,7 +12,8 @@ class TresDGen {
 					title:{
 					  'text-align': 'left',
 					  'font-size':17,
-					  'font-family': 'Arial, Helvetica, sans-serif'
+					  'font-family': 'Arial, Helvetica, sans-serif',
+					  'border-bottom': '0.5px double #70dbe9'
 					},
 					description:{
 					  'display': 'inline-block',
@@ -249,11 +250,17 @@ class TresDGen {
 				}, 100);
 			}
 			else {
-				let ats = node.attributes.map(a => { return "<li>" + a.predicate + " " + a.value + ";</li>"});
+				let pcoma = node.attributes.length === 1 && node.attributes[0].value === "" ? "" : ";";
+				let closed = node.closed ? " CLOSED" : "";
+				let ats = [];
+				if(node.extra) {
+					ats.push("<li>" + node.extra + "</li>");
+				}
+				ats = ats.concat(node.attributes.map(a => { return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" +  pcoma + "</li>"}));
 				nodeOb.html("");
 				nodeOb			
 					.append(
-					  $('<div>').text(node.id).css(slf.styles.title))
+					  $('<div>').text(node.id + closed).css(slf.styles.title))
 					.append(
 					  $('<div>').html('<ul style="list-style-type: none; padding: 0; margin: 0;">' + ats.join("\n") + "</ul>").css(slf.styles.description));
 				nodeOb.attr("class", "activeDetails");
