@@ -13,7 +13,8 @@ class Prefix {
                 res = value + ":" + iri.replace(key, "");
             }
 		});
-		if(res === iri) { //No existe en los registros, sea base pues
+		let keyChars = ['_', '$', '&'];
+		if(res === iri && !keyChars.includes(res.charAt(0))) { //No existe en los registros, sea base pues
 			res = "<" + iri.replace(this.base, "") + ">";
 		}
         return res;

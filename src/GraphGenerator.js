@@ -11,22 +11,68 @@ class GraphGenerator {
 		this.pr = pr;
 		this.enu = new Enum(pr);
 		this.co = new Constraint(pr);
+		this.blankID = 0;
     }
 	
 	createGraph(shapes) {
 		for(let shape in shapes) {
 			let sh = shapes[shape];
-			let newNode;
+			let newNode;			
 			console.log(sh);
 			if(sh.type === "Shape") {
 				newNode = this.checkExpressions(sh, shape)
 			}
-			else if (sh.type === "ShapeAnd") {
-				for(let sha in sh.shapeExprs) {
-					if(sh.shapeExprs[sha].type === "Shape") {
-						this.checkExpressions(sh.shapeExprs[sha], shape)
+			else if (sh.type === "ShapeAnd" || sh.type === "ShapeOr" || sh.type === "ShapeNot") {
+				let companions = [];
+				let relationName = "Composed of";
+				if(sh.type === "ShapeNot") {
+					sh.shapeExprs = [sh.shapeExpr]; //Para que funcione igual que AND y OR
+					relationName = "NOT"
+				}
+				for(let i = 0; i < sh.shapeExprs.length; i++) {
+					let sha = sh.shapeExprs[i]
+					if(sha.type === "Shape") {
+						let partialNode = this.checkExpressions(sha, "_" + ++this.blankID);
+						this.gData.nodes.push(partialNode);
+						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
+							nname: relationName, cardinality: ""}
+						this.gData.links.push(newLink);
+						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+						companions.push(newLink.target);
+						
+					}
+					else if(sha.type === "ShapeRef") { // :Titanuser @:User AND
+						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target:this.pr.getPrefixed(sha.reference), 
+							nname: relationName, cardinality: ""}
+						this.gData.links.push(newLink);
+						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+						companions.push(newLink.target);
+					}
+					else if(sha.type === "NodeConstraint") {
+					    let partialNode = {id: "_" + ++this.blankID, attributes: [{ "predicate": this.checkNodeKind(sha.nodeKind), "value" : "", "facets": "" }]}
+						this.gData.nodes.push(partialNode);
+						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
+							nname: relationName, cardinality: ""}
+						this.gData.links.push(newLink);
+						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+						companions.push(newLink.target);
 					}
 				}
+				for(let i = 0; i < companions.length - 1; i++) { //Recorrer los componentes del AND/OR y unirlos
+				let lop;
+				switch(sh.type) {
+					case "ShapeAnd":
+						lop = "AND";
+						break;
+					case "ShapeOr":
+						lop = "OR";
+						break;
+				}
+					let lopLink = { linkID: ++this.linkID, source: companions[i], target: companions[i + 1], 
+					nname: lop, cardinality: "", rotation: 0, curvature: 0, noarrow: true};
+					this.gData.links.push(lopLink);
+				}
+				newNode = {id: this.pr.getPrefixed(shape), attributes: []}
 			}
 			else if (sh.type === "NodeConstraint") {
 				newNode = {id: this.pr.getPrefixed(shape), attributes: [{ "predicate": this.checkNodeKind(sh.nodeKind), "value" : "", "facets": "" }]}
@@ -64,22 +110,67 @@ class GraphGenerator {
 						this.gData.links.push(newLink);
 						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
 					}
+					else if(expression.valueExpr 
+							&& (expression.valueExpr.type === "ShapeAnd"
+								|| expression.valueExpr.type === "ShapeOr")) { // :productId xsd:string MinLength 5 AND MaxLength 10;
+						let ncValue = this.checkNodeConstraint(expression.valueExpr.shapeExprs[0], name);
+						let attr;
+						if(ncValue) {
+							let facets = this.co.checkFacets(expression.valueExpr.shapeExprs[0]);
+							if(facets !== "") ncValue = ncValue.replace(".", "");
+							let pred = expression.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" ? "a" : this.pr.getPrefixed(expression.predicate);
+							attr = { "predicate": pred, "value": ncValue, "facets": facets };
+							
+						}
+						let lop = " AND ";
+						if(expression.valueExpr.type === "ShapeOr") lop = " OR ";
+						for(let i = 1; i < expression.valueExpr.shapeExprs.length; i++) {
+							let morefacets = this.co.checkFacets(expression.valueExpr.shapeExprs[i]);
+							attr.facets = attr.facets + lop + morefacets;
+						}
+						attrs.push(attr);
+					}
+					else if (expression.valueExpr && expression.valueExpr.type === "Shape") {
+						let newId = ++this.blankID;
+						let partialNode = this.checkExpressions(expression.valueExpr, "_" + newId);
+						let card = Cardinality.cardinalityOf(expression);
+						this.gData.nodes.push(partialNode);
+						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "_" + newId, 
+							nname: this.pr.getPrefixed(expression.predicate), cardinality: card}
+						this.gData.links.push(newLink);
+						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+					}
 					else if (expression.valueExpr) {
-						let ncValue = this.checkNodeConstraint(expression, name);
+						let ncValue = this.checkNodeConstraint(expression.valueExpr, name);
+						let card = Cardinality.cardinalityOf(expression);
 						if(ncValue) {
 							let facets = this.co.checkFacets(expression.valueExpr);
 							if(facets !== "") ncValue = ncValue.replace(".", "");
 							let pred = expression.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" ? "a" : this.pr.getPrefixed(expression.predicate);
-							let attr = { "predicate": pred, "value": ncValue, "facets": facets };
+							let attr = { "predicate": pred, "value": ncValue + card, "facets": facets };
 							attrs.push(attr);
 						}	
 					}
 					else {
-						let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": "." };
+						let card = Cardinality.cardinalityOf(expression);
+						let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": "." + card, "facets": "" };
 						attrs.push(attr);
 					}
 				}
-				
+				else if(expression.type === "EachOf" && expression.id) {	//Etiquetada
+					let partialNode = this.checkExpressions({expression: { expressions: expression.expressions }}, "$" + this.pr.getPrefixed(expression.id));
+					this.gData.nodes.push(partialNode);
+					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "$" + this.pr.getPrefixed(expression.id), 
+						nname: "Composed of", cardinality: ""}
+					this.gData.links.push(newLink);
+					this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+				}
+				else if(expression.type === "Inclusion") {	//Etiquetada
+					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "$" + this.pr.getPrefixed(expression.include), 
+						nname: "&" + this.pr.getPrefixed(expression.include), cardinality: ""}
+					this.gData.links.push(newLink);
+					this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+				}
 			}
 		}
 		let newNode = {id: this.pr.getPrefixed(name), p31:instanceOf, attributes: attrs}
@@ -89,33 +180,24 @@ class GraphGenerator {
 		}
 	}
 	
-	checkNodeConstraint(expr, name) {
-		let card = Cardinality.cardinalityOf(expr);
+	checkNodeConstraint(vex, name) {
         //Conjunto de valores -> enumeración
-        if(expr.valueExpr.values) {
+        if(vex.values) {
             //Relación de tipo "a" ( a [:User])
-			/**
-            if(expr.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type") {
-				let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: this.pr.getPrefixed(expr.valueExpr.values[0]), 
-							nname: this.pr.getPrefixed(expr.predicate)}
-				this.gData.links.push(newLink);
-				return false;
-            }
-			**/
-			let pValues = this.enu.createEnumeration(expr.valueExpr.values);
+			let pValues = this.enu.createEnumeration(vex.values);
 			
-			return "[" + pValues.join(" ") + "]" + card;
+			return "[" + pValues.join(" ") + "]";
         }
         //Tipo de nodo (Literal, IRI...) -> Atributo con tal tipo
-        if(expr.valueExpr.nodeKind) {
-			return this.checkNodeKind(expr.valueExpr.nodeKind) + card;
+        if(vex.nodeKind) {
+			return this.checkNodeKind(vex.nodeKind);
         }
         //Tipo de dato -> atributo común
-        if(expr.valueExpr.datatype) {
-			return this.pr.getPrefixed(expr.valueExpr.datatype) + card;
+        if(vex.datatype) {
+			return this.pr.getPrefixed(vex.datatype);
         }
 
-        return "." + card;
+        return ".";
 	}
 	
 	checkNodeKind(nk) {

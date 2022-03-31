@@ -1,40 +1,43 @@
 import ForceGraph3D from '3d-force-graph';
 import * as THREE from 'three';
-import {CSS2DRenderer, CSS2DObject} from './CSS2DRenderer.js'
+import {
+    CSS2DRenderer,
+    CSS2DObject
+} from './CSS2DRenderer.js'
 import SpriteText from 'three-spritetext';
 import $ from "jquery";
 
 class TresDGen {
-	
-	constructor () {
-		this.changingDetails = false;
-		this.styles ={
-					title:{
-					  'text-align': 'left',
-					  'font-size':17,
-					  'font-family': 'Arial, Helvetica, sans-serif',
-					  'border-bottom': '0.5px double #70dbe9'
-					},
-					description:{
-					  'display': 'inline-block',
-					  'line-height': '23px',
-					  'text-align': 'left',
-					  'margin-top': '3px',
-					  'font-size':14,
-					  'font-family': 'Arial, Helvetica, sans-serif'
-					},
-					dark:{
-					  'display': 'inline-block',
-					  'justify-content': 'center',
-					  'padding': '5px',
-					  'border-radius': '10px',
-					  'border': '1px solid #70dbe9',
-					  'background':'#222',
-					  'color':'white',
-					  'z-index':'1200'
-					}
-				  }
-	}
+
+    constructor() {
+        this.changingDetails = false;
+        this.styles = {
+            title: {
+                'text-align': 'left',
+                'font-size': 17,
+                'font-family': 'Arial, Helvetica, sans-serif',
+                'border-bottom': '0.5px double #70dbe9'
+            },
+            description: {
+                'display': 'inline-block',
+                'line-height': '23px',
+                'text-align': 'left',
+                'margin-top': '3px',
+                'font-size': 14,
+                'font-family': 'Arial, Helvetica, sans-serif'
+            },
+            dark: {
+                'display': 'inline-block',
+                'justify-content': 'center',
+                'padding': '5px',
+                'border-radius': '10px',
+                'border': '1px solid #70dbe9',
+                'background': '#222',
+                'color': 'white',
+                'z-index': '1200'
+            }
+        }
+    }
 
     run(gData, id) {
         gData.links.forEach(link => {
@@ -61,41 +64,41 @@ class TresDGen {
         let activeTooltip = false;
         let activeElement = null;
         let collapse = false;
-		
-		const Graph = ForceGraph3D({
-		  extraRenderers: [new CSS2DRenderer()]
-		});
+
+        const Graph = ForceGraph3D({
+            extraRenderers: [new CSS2DRenderer()]
+        });
 
         Graph(document.getElementById(id))
             .graphData(gData)
             .nodeAutoColorBy('id')
             .nodeRelSize(2)
-			.onNodeDragEnd(node => {
-			  node.fx = node.x;
-			  node.fy = node.y;
-			  node.fz = node.z;
-			})
+            .onNodeDragEnd(node => {
+                node.fx = node.x;
+                node.fy = node.y;
+                node.fz = node.z;
+            })
             .linkWidth(link => highlightLinks.has(link) ? 1 : 1)
             .linkDirectionalParticles(link => highlightLinks.has(link) ? 2 : 0)
             .linkDirectionalParticleWidth(1)
             //.linkColor(link => highlightLinks.has(link) ? 'rgba(255,0,0,0.8)' : 'rgb(0,255,255,0.8)')
-            .linkCurvature(0.8)          
-			.linkCurveRotation('rotation')
-            .linkDirectionalArrowLength(3.5)
+            .linkCurvature(link => link.curvature !== undefined ? link.curvature : 0.8)
+            .linkCurveRotation('rotation')
+            .linkDirectionalArrowLength(link => link.noarrow !== undefined ? 0 : 3.5)
             .linkDirectionalArrowRelPos(1)
             .linkAutoColorBy(d => gData.nodes.find(obj => {
                 return obj.id === d.source
             }).id)
             .nodeThreeObjectExtend(true)
             .nodeThreeObject(node => {
-				const nodeEl = document.createElement('div');
-				nodeEl.textContent = node.id;
-				nodeEl.id = node.id;
-				Object.assign(nodeEl.style, this.styles.dark);
-				nodeEl.style["font-size"] = 12;
-				nodeEl.className = "node-label";				
-				return new CSS2DObject(nodeEl);
-				/**
+                const nodeEl = document.createElement('div');
+                nodeEl.textContent = node.id;
+                nodeEl.id = node.id;
+                Object.assign(nodeEl.style, this.styles.dark);
+                nodeEl.style["font-size"] = 12;
+                nodeEl.className = "node-label";
+                return new CSS2DObject(nodeEl);
+                /**
                 const sprite = new SpriteText(node.id);
                 sprite.color = 'rgba(255,255,255,1)';
                 sprite.backgroundColor = 'rgba(0,0,0,1)';
@@ -105,29 +108,40 @@ class TresDGen {
             })
             .linkThreeObjectExtend(true)
             .linkThreeObject(link => {
-              const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
-              sprite.color = 'lightgrey';
-              sprite.textHeight = 2;
-			  sprite.link = link;
-              return sprite;
+                const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
+                sprite.color = 'lightgrey';
+                sprite.textHeight = 2;
+                sprite.link = link;
+                return sprite;
             })
-            .linkPositionUpdate((sprite, { start, end }) => {
-			  let textPos = getQuadraticXYZ(
-				0.5,
-				start,
-				sprite.link.__curve.v1,
-				end
-			  );
-			  if(sprite.link.source === sprite.link.target) {
-				  textPos = getQuadraticXYZ(
-					0.5,
-					sprite.link.__curve.v1,
-					sprite.link.__curve.v2,
-					sprite.link.__curve.v3
-				  );
-			  }
-	
-              Object.assign(sprite.position, textPos);
+            .linkPositionUpdate((sprite, {
+                start,
+                end
+            }) => {
+                if (sprite.link.__curve) {
+                    let textPos = getQuadraticXYZ(
+                        0.5,
+                        start,
+                        sprite.link.__curve.v1,
+                        end
+                    );
+                    if (sprite.link.source === sprite.link.target) {
+                        textPos = getQuadraticXYZ(
+                            0.5,
+                            sprite.link.__curve.v1,
+                            sprite.link.__curve.v2,
+                            sprite.link.__curve.v3
+                        );
+                    }
+                    Object.assign(sprite.position, textPos);
+                } else {
+                    const middlePos = Object.assign(...['x', 'y', 'z'].map(c => ({
+                        [c]: start[c] + (end[c] - start[c]) / 2 // calc middle point
+                    })));
+
+                    Object.assign(sprite.position, middlePos);
+                }
+
             })
             .onNodeHover(async (node) => {
                 // no state change
@@ -136,13 +150,13 @@ class TresDGen {
                 highlightNodes.clear();
                 highlightLinks.clear();
                 if (node) {
-                    if (activeElement !== node.p31) $(".wikidata_tooltip").remove();                  
+                    if (activeElement !== node.p31) $(".wikidata_tooltip").remove();
                     highlightNodes.add(node);
                     if (node.neighbors) node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
                     if (node.links) node.links.forEach(link => highlightLinks.add(link));
                     if (node.p31 && !activeTooltip && activeElement !== node.p31) {
                         activeTooltip = true;
-						activeElement = node.p31;
+                        activeElement = node.p31;
                         let endpoint = "https://www.wikidata.org/w/"
                         let data = await checkEntity(node.p31, endpoint)
                         let posX = 0,
@@ -162,14 +176,14 @@ class TresDGen {
 
                 if (link) {
                     if (activeElement !== link.nname) $(".wikidata_tooltip").remove();
-                    highlightLinks.add(link);                  
+                    highlightLinks.add(link);
                     highlightNodes.add(link.source);
                     highlightNodes.add(link.target);
                     if (link.nname && !activeTooltip && activeElement !== link.nname) {
                         activeTooltip = true;
-						activeElement = link.nname;
+                        activeElement = link.nname;
                         let endpoint = "https://www.wikidata.org/w/"
-						let noPrefix = link.nname.split(":").at(-1);
+                        let noPrefix = link.nname.split(":").at(-1);
                         let data = await checkEntity(noPrefix, endpoint)
                         let posX = 0,
                             posY = 0 + $(window).scrollTop();
@@ -180,24 +194,26 @@ class TresDGen {
 
                 updateHighlight();
             })
-			.onNodeClick(node => {	
-				if(!this.changingDetails) {
-					let self = this;
-					loadDetails(node, self);
-				}
-			})
+            .onNodeClick(node => {
+                if (!this.changingDetails) {
+                    let self = this;
+                    loadDetails(node, self);
+                }
+            })
             .onNodeRightClick(node => {
 
                 if (!collapse) {
                     let visibleNodes = [];
-					visibleNodes.push({
-                            id: node.id,
-                            p31: node.p31
+                    visibleNodes.push({
+                        id: node.id,
+                        p31: node.p31,
+						attributes: node.attributes
                     });
                     node.neighbors.forEach(node => {
                         let newNode = {
                             id: node.id,
-                            p31: node.p31
+                            p31: node.p31,
+							attributes: node.attributes
                         };
                         let found = visibleNodes.find(obj => {
                             return obj.id === newNode.id
@@ -210,7 +226,8 @@ class TresDGen {
                             source: link.source.id,
                             target: link.target.id,
                             nname: link.nname,
-							rotation: link.rotation
+                            rotation: link.rotation,
+							cardinality: link.cardinality
                         };
                         visibleLinks.push(newLink);
                     });
@@ -224,51 +241,61 @@ class TresDGen {
                     collapse = false;
                 }
             });
-			
-		function getQuadraticXYZ(t, s, cp1, e) {
-		  return {
-			x: (1 - t) * (1 - t) * s.x + 2 * (1 - t) * t * cp1.x + t * t * e.x,
-			y: (1 - t) * (1 - t) * s.y + 2 * (1 - t) * t * cp1.y + t * t * e.y,
-			z: (1 - t) * (1 - t) * s.z + 2 * (1 - t) * t * cp1.z + t * t * e.z
-		  };
-		}
-		
-		function loadDetails(node, slf) {
-			let nodeOb = $("#" + $.escapeSelector(node.id));
-			if(nodeOb.attr("class") && nodeOb.attr("class").includes("activeDetails")) {
-				nodeOb.removeClass("activeDetails");
-				nodeOb.html("");
-				nodeOb			
-					.append(
-					  $('<div>').text(node.id).css("font-size", 12));
-				nodeOb.css("pointer-events", "none");
-				nodeOb.css("cursor", "auto");
-				nodeOb.unbind("click");
-				slf.changingDetails = true;
-				setTimeout(function() {
-					slf.changingDetails = false;
-				}, 100);
-			}
-			else {
-				let pcoma = node.attributes.length === 1 && node.attributes[0].value === "" ? "" : ";";
-				let closed = node.closed ? " CLOSED" : "";
-				let ats = [];
-				if(node.extra) {
-					ats.push("<li>" + node.extra + "</li>");
-				}
-				ats = ats.concat(node.attributes.map(a => { return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" +  pcoma + "</li>"}));
-				nodeOb.html("");
-				nodeOb			
-					.append(
-					  $('<div>').text(node.id + closed).css(slf.styles.title))
-					.append(
-					  $('<div>').html('<ul style="list-style-type: none; padding: 0; margin: 0;">' + ats.join("\n") + "</ul>").css(slf.styles.description));
-				nodeOb.attr("class", "activeDetails");
-				nodeOb.css("pointer-events", "auto");
-				nodeOb.css("cursor", "pointer");
-				nodeOb.click(() => loadDetails(node, slf));
-			}
-		}
+
+        function getQuadraticXYZ(t, s, cp1, e) {
+            return {
+                x: (1 - t) * (1 - t) * s.x + 2 * (1 - t) * t * cp1.x + t * t * e.x,
+                y: (1 - t) * (1 - t) * s.y + 2 * (1 - t) * t * cp1.y + t * t * e.y,
+                z: (1 - t) * (1 - t) * s.z + 2 * (1 - t) * t * cp1.z + t * t * e.z
+            };
+        }
+
+        function loadDetails(node, slf) {
+            let nodeOb = $("#" + $.escapeSelector(node.id));
+            if (nodeOb.attr("class") && nodeOb.attr("class").includes("activeDetails")) {
+                nodeOb.removeClass("activeDetails");
+                nodeOb.html("");
+                nodeOb
+                    .append(
+                        $('<div>').text(node.id).css("font-size", 12));
+                nodeOb.css("pointer-events", "none");
+                nodeOb.css("cursor", "auto");
+                nodeOb.unbind("click");
+                slf.changingDetails = true;
+                setTimeout(function() {
+                    slf.changingDetails = false;
+                }, 100);
+            } else {
+                nodeOb.html("");
+                let closed = node.closed ? " CLOSED" : "";
+                let ats = [];
+                if (node.extra) {
+                    ats.push("<li>" + node.extra + "</li>");
+                }
+                /**if(node.lop) { //Varias shapes (ShapeAND, ShapeOR)
+                	for(let i = 0; i < node.attributes.length; i++) {
+                		let pcoma = node.attributes[i].length === 1 && node.attributes[i][0].value === "" ? "" : ";";
+                		ats = ats.concat(node.attributes[i].map(a => { return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" +  pcoma + "</li>"}));
+                		if(i < node.attributes.length - 1 ) ats.push("<li>" + node.lop + "</li>");
+                	}
+                }
+                else {**/
+                let pcoma = node.attributes.length === 1 && node.attributes[0].value === "" ? "" : ";";
+                ats = ats.concat(node.attributes.map(a => {
+                    return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" + pcoma + "</li>"
+                }));
+                //}
+                nodeOb
+                    .append(
+                        $('<div>').text(node.id + closed).css(slf.styles.title))
+                    .append(
+                        $('<div>').html('<ul style="list-style-type: none; padding: 0; margin: 0;">' + ats.join("\n") + "</ul>").css(slf.styles.description));
+                nodeOb.attr("class", "activeDetails");
+                nodeOb.css("pointer-events", "auto");
+                nodeOb.css("cursor", "pointer");
+                nodeOb.click(() => loadDetails(node, slf));
+            }
+        }
 
         function updateHighlight() {
             // trigger update of highlighted objects in scene
@@ -317,7 +344,7 @@ class TresDGen {
                     }
 
                 }
-				
+
                 $('#tooltip')
                     .css('position', 'absolute')
                     .css('z-index', '2000')
@@ -336,9 +363,9 @@ class TresDGen {
                     .appendTo('body').fadeIn('slow');
             }
         }
-	
+
         Graph.d3Force('charge').strength(-240);
-		return Graph;
+        return Graph;
     }
 
 
