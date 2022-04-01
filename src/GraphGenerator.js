@@ -35,7 +35,7 @@ class GraphGenerator {
 						let partialNode = this.checkExpressions(sha, "_" + ++this.blankID);
 						this.gData.nodes.push(partialNode);
 						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
-							nname: relationName, cardinality: ""}
+							nname: relationName, cardinality: "", curvature: 0}
 						this.gData.links.push(newLink);
 						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
 						companions.push(newLink.target);
@@ -43,7 +43,7 @@ class GraphGenerator {
 					}
 					else if(sha.type === "ShapeRef") { // :Titanuser @:User AND
 						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target:this.pr.getPrefixed(sha.reference), 
-							nname: relationName, cardinality: ""}
+							nname: relationName, cardinality: "", curvature: 0}
 						this.gData.links.push(newLink);
 						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
 						companions.push(newLink.target);
@@ -52,7 +52,7 @@ class GraphGenerator {
 					    let partialNode = {id: "_" + ++this.blankID, attributes: [{ "predicate": this.checkNodeKind(sha.nodeKind), "value" : "", "facets": "" }]}
 						this.gData.nodes.push(partialNode);
 						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
-							nname: relationName, cardinality: ""}
+							nname: relationName, cardinality: "", curvature: 0}
 						this.gData.links.push(newLink);
 						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
 						companions.push(newLink.target);
@@ -93,12 +93,15 @@ class GraphGenerator {
 		try {
 		let instanceOf = null;
 		let attrs = [];
-		if(shape.expression) {	
+		if(shape.expression && shape.expression.type === "OneOf") {
+			let card = Cardinality.cardinalityOf(shape.expression);
+			this.createOneOf(shape.expression.expressions, name, card);
+		}
+		else if(shape.expression) {	
 			let expressions = shape.expression.predicate ? [shape.expression] : shape.expression.expressions;
 			for(let exp in expressions) {		
 				let expression = expressions[exp]
 				console.log(expression);
-
 				if(expression.type === "TripleConstraint") {
 					if(expression.predicate === "http://www.wikidata.org/entity/P31") {
 						instanceOf = expression.valueExpr.values[0].split("/")[4]; 
@@ -171,12 +174,37 @@ class GraphGenerator {
 					this.gData.links.push(newLink);
 					this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
 				}
+				else if(expression.type === "OneOf") {	//OneOf
+					let card = Cardinality.cardinalityOf(expression);
+					this.createOneOf(expression.expressions, name, card);
+				}
 			}
 		}
 		let newNode = {id: this.pr.getPrefixed(name), p31:instanceOf, attributes: attrs}
 		return newNode;		
 		} catch (ex) {
 			throw new Error("At " + name + ": " + ex);
+		}
+	}
+	
+	createOneOf(exps, name, card) {
+		let companions = [];
+		let relationName = "Composed of";
+		for(let i = 0; i < exps.length; i++) {
+			let exp = exps[i]
+			let newId = ++this.blankID;
+			let partialNode = this.checkExpressions({expression: exp}, "_" + newId);
+			this.gData.nodes.push(partialNode);		
+			let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "_" + newId, 
+				nname: relationName, cardinality: card, curvature: 0}
+			this.gData.links.push(newLink);
+			this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+			companions.push(newLink.target);					
+		}
+		for(let i = 0; i < companions.length - 1; i++) { //Recorrer los componentes del OneOf y unirlos
+			let lopLink = { linkID: ++this.linkID, source: companions[i], target: companions[i + 1], 
+			nname: "OneOf", cardinality: "", rotation: 0, curvature: 0, noarrow: true};
+			this.gData.links.push(lopLink);
 		}
 	}
 	
@@ -206,7 +234,6 @@ class GraphGenerator {
 		else if(nk === "bnode") return "BNode"
 		else if(nk === "nonliteral") return "NonLiteral"
 	}
-	
 	
 	linkNodePair(source, target, linkID) {
 		let linksst = this.nodePairs.get(source + "-" + target);
