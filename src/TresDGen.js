@@ -272,19 +272,10 @@ class TresDGen {
                 if (node.extra) {
                     ats.push("<li>" + node.extra + "</li>");
                 }
-                /**if(node.lop) { //Varias shapes (ShapeAND, ShapeOR)
-                	for(let i = 0; i < node.attributes.length; i++) {
-                		let pcoma = node.attributes[i].length === 1 && node.attributes[i][0].value === "" ? "" : ";";
-                		ats = ats.concat(node.attributes[i].map(a => { return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" +  pcoma + "</li>"}));
-                		if(i < node.attributes.length - 1 ) ats.push("<li>" + node.lop + "</li>");
-                	}
-                }
-                else {**/
                 let pcoma = node.attributes.length === 1 && node.attributes[0].value === "" ? "" : ";";
                 ats = ats.concat(node.attributes.map(a => {
                     return "<li>" + a.predicate + " " + a.value + "<i>" + a.facets + "</i>" + pcoma + "</li>"
                 }));
-                //}
                 nodeOb
                     .append(
                         $('<div>').text(node.id + closed).css(slf.styles.title))

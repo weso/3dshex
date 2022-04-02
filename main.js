@@ -1,21 +1,46 @@
 const shexParser = require("./src/ShExParser.js");
 import TresDGen from './src/TresDGen.js';
+import autocomplete from './src/search/Search.js';
 
-function shExTo3D(text, id) {
-	let gData = null;
-	let graph;
-	try {
-		gData = shexParser.parseShExToGraph(text);
-	} catch(ex) {
-		alert("An error has occurred when generating the graph data: \n" + ex);
+class ShExTo3D {
+	
+	constructor () {
+		this.graph = null;
+		this.gData = null;
+    }
+
+	shExTo3D(text, id) {
+		let nodeList = [];
+		try {
+			this.gData = shexParser.parseShExToGraph(text);
+			this.gData.nodes.forEach(node => {
+				nodeList.push(node.id);
+			});
+		} catch(ex) {
+			alert("An error has occurred when generating the graph data: \n" + ex);
+		}
+		
+		try {
+			this.graph = TresDGen.run(this.gData, id);
+			autocomplete(document.getElementById("nodeInput"), nodeList, this);
+		} catch(ex) {
+			alert("An error has occurred when generating the visualization: \n" + ex);
+		}
+		return this.graph;
 	}
 	
-	try {
-		graph = TresDGen.run(gData, id);
-	} catch(ex) {
-		alert("An error has occurred when generating the visualization: \n" + ex);
-	}
-	return graph;
-}
+	nodeCloseup(id) {
+		const node = this.gData.nodes.find(obj => {
+                return obj.id === id
+            });
+		const distance = 60;
+        const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
 
-export default shExTo3D;
+		this.graph.cameraPosition(
+		{ x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+		node,
+		2000 
+		);
+	}
+}
+module.exports = new ShExTo3D();

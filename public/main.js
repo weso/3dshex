@@ -1,4 +1,4 @@
-import shExTo3D from "../main.js";
+import sh3 from "../main.js";
 
 if(document.getElementById("shextext") !== null) {
     var shExEditor = CodeMirror.fromTextArea(document.getElementById("shextext"), {
@@ -14,10 +14,11 @@ shxtx.click(sshExTo3D);
 
 function sshExTo3D() {
 	let text = shExEditor.getValue();
-	shExTo3D(text, "3d-graph");
+	sh3.shExTo3D(text, "3d-graph");
 
 	$("#editorcontainer").css("display", "none");
 	$("#graphcontainer").css("display", "inherit");
+	$("#autocompletecontainer").removeClass("hidden");
 }
 
 let load = $('#loadex');
@@ -28,4 +29,16 @@ function loadExample() {
 	$.get('./static/genewiki.shex.txt', function(data) {
 		shExEditor.setValue(data);
 	});
+}
+
+$( "#nodeInput" ).keydown(function(event) {
+	let term = $( "#nodeInput" ).val();
+	search(event, term);
+});
+
+function search(event, id) {
+	if(event.key === 'Enter') {
+		sh3.nodeCloseup(id);
+	}
+	
 }

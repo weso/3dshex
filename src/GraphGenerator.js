@@ -17,8 +17,7 @@ class GraphGenerator {
 	createGraph(shapes) {
 		for(let shape in shapes) {
 			let sh = shapes[shape];
-			let newNode;			
-			console.log(sh);
+			let newNode;		
 			if(sh.type === "Shape") {
 				newNode = this.checkExpressions(sh, shape)
 			}
@@ -101,7 +100,6 @@ class GraphGenerator {
 			let expressions = shape.expression.predicate ? [shape.expression] : shape.expression.expressions;
 			for(let exp in expressions) {		
 				let expression = expressions[exp]
-				console.log(expression);
 				if(expression.type === "TripleConstraint") {
 					if(expression.predicate === "http://www.wikidata.org/entity/P31") {
 						instanceOf = expression.valueExpr.values[0].split("/")[4]; 
