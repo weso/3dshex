@@ -36,10 +36,16 @@ class TresDGen {
                 'color': 'white',
                 'z-index': '1200'
             }
-        }
+        };
+		this.wikidataTooltips = true;
+		this.highlightLinks = new Set();
+		this.hiddenNodes = false;
+		this.hiddenEdges = false;
+		this.edgeCardinality = true;
     }
 
     run(gData, id) {
+		let self = this;
         gData.links.forEach(link => {
             const a = gData.nodes.find(obj => {
                 return obj.id === link.source
@@ -59,7 +65,7 @@ class TresDGen {
         });
 
         const highlightNodes = new Set();
-        const highlightLinks = new Set();
+        
         let hoverNode = null;
         let activeTooltip = false;
         let activeElement = null;
@@ -78,17 +84,14 @@ class TresDGen {
                 node.fy = node.y;
                 node.fz = node.z;
             })
-            .linkWidth(link => highlightLinks.has(link) ? 1 : 1)
-            .linkDirectionalParticles(link => highlightLinks.has(link) ? 2 : 0)
+            .linkWidth(link => self.highlightLinks.has(link) ? 1 : 1)
+            .linkDirectionalParticles(link => self.highlightLinks.has(link) ? 2 : 0)
             .linkDirectionalParticleWidth(1)
-            //.linkColor(link => highlightLinks.has(link) ? 'rgba(255,0,0,0.8)' : 'rgb(0,255,255,0.8)')
+            .linkColor(link => this.highlightLinks.has(link) ? 'rgba(255,0,255,1)' : 'rgba(0,255,255,0.8)')
             .linkCurvature(link => link.curvature !== undefined ? link.curvature : 0.8)
             .linkCurveRotation('rotation')
             .linkDirectionalArrowLength(link => link.noarrow !== undefined ? 0 : 3.5)
             .linkDirectionalArrowRelPos(1)
-            .linkAutoColorBy(d => gData.nodes.find(obj => {
-                return obj.id === d.source
-            }).id)
             .nodeThreeObjectExtend(true)
             .nodeThreeObject(node => {
                 const nodeEl = document.createElement('div');
@@ -98,13 +101,6 @@ class TresDGen {
                 nodeEl.style["font-size"] = 12;
                 nodeEl.className = "node-label";
                 return new CSS2DObject(nodeEl);
-                /**
-                const sprite = new SpriteText(node.id);
-                sprite.color = 'rgba(255,255,255,1)';
-                sprite.backgroundColor = 'rgba(0,0,0,1)';
-                sprite.textHeight = 3;
-                return sprite;
-				**/
             })
             .linkThreeObjectExtend(true)
             .linkThreeObject(link => {
@@ -112,6 +108,7 @@ class TresDGen {
                 sprite.color = 'lightgrey';
                 sprite.textHeight = 2;
                 sprite.link = link;
+				link.sprite = sprite;
                 return sprite;
             })
             .linkPositionUpdate((sprite, {
@@ -148,13 +145,13 @@ class TresDGen {
                 if ((!node && !highlightNodes.size) || (node && hoverNode === node)) return;
 
                 highlightNodes.clear();
-                highlightLinks.clear();
+                this.highlightLinks.clear();
                 if (node) {
                     if (activeElement !== node.p31) $(".wikidata_tooltip").remove();
                     highlightNodes.add(node);
                     if (node.neighbors) node.neighbors.forEach(neighbor => highlightNodes.add(neighbor));
-                    if (node.links) node.links.forEach(link => highlightLinks.add(link));
-                    if (node.p31 && !activeTooltip && activeElement !== node.p31) {
+                    if (node.links) node.links.forEach(link => this.highlightLinks.add(link));
+                    if (node.p31 && !activeTooltip && activeElement !== node.p31 && this.wikidataTooltips) {
                         activeTooltip = true;
                         activeElement = node.p31;
                         let endpoint = "https://www.wikidata.org/w/"
@@ -172,14 +169,14 @@ class TresDGen {
             })
             .onLinkHover(async (link) => {
                 highlightNodes.clear();
-                highlightLinks.clear();
+                this.highlightLinks.clear();
 
                 if (link) {
                     if (activeElement !== link.nname) $(".wikidata_tooltip").remove();
-                    highlightLinks.add(link);
+                    this.highlightLinks.add(link);
                     highlightNodes.add(link.source);
                     highlightNodes.add(link.target);
-                    if (link.nname && !activeTooltip && activeElement !== link.nname) {
+                    if (link.nname && !activeTooltip && activeElement !== link.nname && this.wikidataTooltips) {
                         activeTooltip = true;
                         activeElement = link.nname;
                         let endpoint = "https://www.wikidata.org/w/"
@@ -195,7 +192,7 @@ class TresDGen {
                 updateHighlight();
             })
             .onNodeClick(node => {
-                if (!this.changingDetails) {
+                if (!this.changingDetails && !this.hiddenNodes) {
                     let self = this;
                     loadDetails(node, self);
                 }
@@ -261,6 +258,7 @@ class TresDGen {
                 nodeOb.css("pointer-events", "none");
                 nodeOb.css("cursor", "auto");
                 nodeOb.unbind("click");
+				nodeOb.attr("class", "node-label");
                 slf.changingDetails = true;
                 setTimeout(function() {
                     slf.changingDetails = false;
@@ -287,14 +285,13 @@ class TresDGen {
                 nodeOb.click(() => loadDetails(node, slf));
             }
         }
-
+		
         function updateHighlight() {
             // trigger update of highlighted objects in scene
             Graph
                 .nodeColor(Graph.nodeColor())
                 .linkWidth(Graph.linkWidth())
                 .linkDirectionalParticles(Graph.linkDirectionalParticles());
-
         }
 
         async function checkEntity(entity, endPoint) {
@@ -358,6 +355,10 @@ class TresDGen {
         Graph.d3Force('charge').strength(-240);
         return Graph;
     }
+	
+	getHighlightLinks() {
+		return this.highlightLinks;
+	}
 
 
 }
