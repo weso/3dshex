@@ -23,6 +23,16 @@ class ShExTo3D {
 			alert("An error has occurred when generating the graph data: \n" + ex);
 		}
 		
+		if(this.gData.nodes.length > 69) {
+			$('#chStNode').prop('checked', false);
+			TresDGen.hiddenNodes = true;
+
+		}
+		if(this.gData.links.length > 288) {
+			$('#chStEdge').prop('checked', false);
+			TresDGen.hiddenEdges = true;
+		}
+		
 		try {
 			this.graph = TresDGen.run(this.gData, id);
 			this.highlightLinks = TresDGen.getHighlightLinks();
@@ -57,12 +67,14 @@ class ShExTo3D {
 			  $(this).removeClass('hidden');
 			});
 			TresDGen.hiddenNodes = !val;
+			this.graph.nodeLabel(node => "");
 		} 
 		else { //Quitarlos
 			$( ".node-label" ).each(function() {
 			  $(this).addClass('hidden');
 			});
 			TresDGen.hiddenNodes = !val;
+			this.graph.nodeLabel(node => node.id);
 		}
 	}
 	

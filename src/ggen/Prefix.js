@@ -2,7 +2,7 @@ class Prefix {
 
     constructor () {
 		this.prefixes = null;
-		this.base = null;
+		this.base = "http://example.org/";
     }
 	
 	getPrefixed(iri) {

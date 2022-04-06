@@ -27,7 +27,7 @@ class ShExParser {
     let source = this.parseShEx(shex);
     
     //Guardar prefijos
-    this.pr.base = source.base;
+	if(source.base) this.pr.base = source.base;
     for(let prefix in source.prefixes) {
 		this.prefixes.set(source.prefixes[prefix], prefix);
     }

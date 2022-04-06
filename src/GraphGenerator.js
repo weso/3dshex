@@ -15,7 +15,7 @@ class GraphGenerator {
     }
 	
 	createGraph(shapes) {
-		for(let shape in shapes) {
+		for(let shape in shapes) {		
 			let sh = shapes[shape];
 			let newNode;		
 			if(sh.type === "Shape") {
@@ -75,6 +75,9 @@ class GraphGenerator {
 			}
 			else if (sh.type === "NodeConstraint") {
 				newNode = {id: this.pr.getPrefixed(shape), attributes: [{ "predicate": this.checkNodeKind(sh.nodeKind), "value" : "", "facets": "" }]}
+			}		
+			else if (sh.type === "ShapeExternal") {
+				newNode = {id: this.pr.getPrefixed(shape), attributes: [{ "predicate": "EXTERNAL", "value" : "", "facets": "" }]}
 			}
 			
 			if(sh.closed === true) newNode.closed = true;
@@ -120,7 +123,7 @@ class GraphGenerator {
 							let facets = this.co.checkFacets(expression.valueExpr.shapeExprs[0]);
 							if(facets !== "") ncValue = ncValue.replace(".", "");
 							let pred = expression.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" ? "a" : this.pr.getPrefixed(expression.predicate);
-							attr = { "predicate": pred, "value": ncValue, "facets": facets };
+							attr = { "predicate": this.safeAngs(pred), "value": this.safeAngs(ncValue), "facets": facets };
 							
 						}
 						let lop = " AND ";
@@ -148,13 +151,13 @@ class GraphGenerator {
 							let facets = this.co.checkFacets(expression.valueExpr);
 							if(facets !== "") ncValue = ncValue.replace(".", "");
 							let pred = expression.predicate === "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" ? "a" : this.pr.getPrefixed(expression.predicate);
-							let attr = { "predicate": pred, "value": ncValue + card, "facets": facets };
+							let attr = { "predicate": this.safeAngs(pred), "value": this.safeAngs(ncValue) + card, "facets": facets };
 							attrs.push(attr);
 						}	
 					}
 					else {
 						let card = Cardinality.cardinalityOf(expression);
-						let attr = { "predicate": this.pr.getPrefixed(expression.predicate), "value": "." + card, "facets": "" };
+						let attr = { "predicate": this.safeAngs(this.pr.getPrefixed(expression.predicate)), "value": "." + card, "facets": "" };
 						attrs.push(attr);
 					}
 				}
@@ -268,6 +271,10 @@ class GraphGenerator {
 		});
 	}
 	
+	safeAngs(pred) {
+		return pred.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+	}
+ 	
 	reset() {
 		this.gData = {nodes: [],links: []}
 		this.linkID = 0;

@@ -50,9 +50,13 @@ class TresDGen {
             const a = gData.nodes.find(obj => {
                 return obj.id === link.source
             });
-            const b = gData.nodes.find(obj => {
+            let b = gData.nodes.find(obj => {
                 return obj.id === link.target
             });
+			if(!b) { //El nodo objetivo no existe
+				b = {id: link.target, p31: null, attributes: []}
+				gData.nodes.push(b);
+			}
             !a.neighbors && (a.neighbors = []);
             !b.neighbors && (b.neighbors = []);
             a.neighbors.push(b);
@@ -100,17 +104,12 @@ class TresDGen {
                 Object.assign(nodeEl.style, this.styles.dark);
                 nodeEl.style["font-size"] = 12;
                 nodeEl.className = "node-label";
+				if(this.hiddenNodes) {
+					nodeEl.className = "node-label hidden";
+				}
                 return new CSS2DObject(nodeEl);
             })
             .linkThreeObjectExtend(true)
-            .linkThreeObject(link => {
-                const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
-                sprite.color = 'lightgrey';
-                sprite.textHeight = 2;
-                sprite.link = link;
-				link.sprite = sprite;
-                return sprite;
-            })
             .linkPositionUpdate((sprite, {
                 start,
                 end
@@ -232,12 +231,53 @@ class TresDGen {
                         nodes: visibleNodes,
                         links: visibleLinks
                     });
+					const distance = 60;
+					const distRatio = 1 + distance/Math.hypot(node.x, node.y, node.z);
+
+					Graph.cameraPosition(
+					{ x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+					node,
+					100 
+					);
                     collapse = true;
                 } else {
                     Graph.graphData(gData);
                     collapse = false;
                 }
             });
+			
+		
+		if(!this.hiddenEdges) {
+			Graph.linkThreeObject(link => {
+				const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
+                sprite.color = 'lightgrey';
+                sprite.textHeight = 2;
+                sprite.link = link;
+				link.sprite = sprite;
+                return sprite;
+            })
+			gData.links.forEach(link => {
+				link.name = undefined;
+			});
+		}
+		else {
+			Graph.linkThreeObject(link => {
+				const sprite = new SpriteText("");
+                sprite.link = link;
+				link.sprite = sprite;
+                return sprite;
+            })
+			gData.links.forEach(link => {
+				link.name = link.nname;
+			});
+		}
+		
+		if(!this.hiddenNodes) {
+			Graph.nodeLabel(node => "");
+		}
+		else {
+			Graph.nodeLabel(node => node.id);
+		}
 
         function getQuadraticXYZ(t, s, cp1, e) {
             return {
