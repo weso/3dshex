@@ -125,4 +125,4 @@ class ShExTo3D {
 		return sprite;
 	}
 }
-module.exports = new ShExTo3D();
+export default new ShExTo3D();
