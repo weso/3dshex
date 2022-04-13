@@ -36,7 +36,11 @@ class ShExTo3D {
 		try {
 			this.graph = TresDGen.run(this.gData, id);
 			this.highlightLinks = TresDGen.getHighlightLinks();
-			autocomplete(document.getElementById("nodeInput"), nodeList, this);
+			let nodeInput = document.getElementById("nodeInput");
+			if (nodeInput) {
+				autocomplete(nodeInput, nodeList, this);
+			}
+			
 		} catch(ex) {
 			alert("An error has occurred when generating the visualization: \n" + ex);
 		}
