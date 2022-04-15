@@ -12,7 +12,7 @@ class ShExTo3D {
 		this.highlightLinks = null;
     }
 
-	shExTo3D(text, id) {
+	shExTo3D(text, id, dimensions) {
 		let nodeList = [];
 		try {
 			this.gData = shexParser.parseShExToGraph(text);
@@ -39,6 +39,10 @@ class ShExTo3D {
 			let nodeInput = document.getElementById("nodeInput");
 			if (nodeInput) {
 				autocomplete(nodeInput, nodeList, this);
+			}
+			if(dimensions) {
+				this.graph.width(dimensions.width);
+				this.graph.height(dimensions.height);
 			}
 			
 		} catch(ex) {
