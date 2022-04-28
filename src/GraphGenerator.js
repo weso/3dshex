@@ -29,33 +29,32 @@ class GraphGenerator {
 					relationName = "NOT"
 				}
 				for(let i = 0; i < sh.shapeExprs.length; i++) {
-					let sha = sh.shapeExprs[i]
+					let sha = sh.shapeExprs[i];
+					let linkTarget;
 					if(sha.type === "Shape") {
 						let partialNode = this.checkExpressions(sha, "_" + ++this.blankID);
 						this.gData.nodes.push(partialNode);
-						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
-							nname: relationName, cardinality: "", curvature: 0}
-						this.gData.links.push(newLink);
-						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
-						companions.push(newLink.target);
+						linkTarget = "_" + this.blankID;
 						
 					}
 					else if(sha.type === "ShapeRef") { // :Titanuser @:User AND
-						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target:this.pr.getPrefixed(sha.reference), 
-							nname: relationName, cardinality: "", curvature: 0}
-						this.gData.links.push(newLink);
-						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
-						companions.push(newLink.target);
+						linkTarget = this.pr.getPrefixed(sha.reference);
 					}
 					else if(sha.type === "NodeConstraint") {
+						linkTarget = "_" + this.blankID;
 					    let partialNode = {id: "_" + ++this.blankID, attributes: [{ "predicate": this.checkNodeKind(sha.nodeKind), "value" : "", "facets": "" }]}
 						this.gData.nodes.push(partialNode);
-						let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: "_" + this.blankID, 
-							nname: relationName, cardinality: "", curvature: 0}
-						this.gData.links.push(newLink);
-						this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
-						companions.push(newLink.target);
 					}
+					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: linkTarget, 
+							nname: relationName, cardinality: "", curvature: 0, diamond: 1}
+					this.gData.links.push(newLink);
+					this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+					companions.push(newLink.target);
+					//Crear el diamante
+					let diamLink = { linkID: ++this.linkID, source: linkTarget, target: this.pr.getPrefixed(shape), 
+							nname: "", cardinality: "", curvature: 0, diamond: 2}
+					this.gData.links.push(diamLink);
+					this.linkNodePair(diamLink.target, diamLink.source, diamLink.linkID);
 				}
 				for(let i = 0; i < companions.length - 1; i++) { //Recorrer los componentes del AND/OR y unirlos
 				let lop;
@@ -165,9 +164,14 @@ class GraphGenerator {
 					let partialNode = this.checkExpressions({expression: { expressions: expression.expressions }}, "$" + this.pr.getPrefixed(expression.id));
 					this.gData.nodes.push(partialNode);
 					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "$" + this.pr.getPrefixed(expression.id), 
-						nname: "Composed of", cardinality: ""}
+						nname: "Composed of", cardinality: "", curvature: 0, diamond: 1}
 					this.gData.links.push(newLink);
 					this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
+					//Crear el diamante
+					let diamLink = { linkID: ++this.linkID, source: "$" + this.pr.getPrefixed(expression.id), target: this.pr.getPrefixed(name), 
+							nname: "", cardinality: "", curvature: 0, diamond: 2}
+					this.gData.links.push(diamLink);
+					this.linkNodePair(diamLink.target, diamLink.source, diamLink.linkID);
 				}
 				else if(expression.type === "Inclusion") {	//Etiquetada
 					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "$" + this.pr.getPrefixed(expression.include), 
@@ -197,10 +201,15 @@ class GraphGenerator {
 			let partialNode = this.checkExpressions({expression: exp}, "_" + newId);
 			this.gData.nodes.push(partialNode);		
 			let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(name), target: "_" + newId, 
-				nname: relationName, cardinality: card, curvature: 0}
+				nname: relationName, cardinality: card, curvature: 0, diamond: 1}
 			this.gData.links.push(newLink);
 			this.linkNodePair(newLink.source, newLink.target, newLink.linkID);
-			companions.push(newLink.target);					
+			companions.push(newLink.target);
+			//Crear el diamante
+			let diamLink = { linkID: ++this.linkID, source: "_" + newId , target: this.pr.getPrefixed(name), 
+						nname: "", cardinality: "", curvature: 0, diamond: 2}
+			this.gData.links.push(diamLink);
+			this.linkNodePair(diamLink.target, diamLink.source, diamLink.linkID);
 		}
 		for(let i = 0; i < companions.length - 1; i++) { //Recorrer los componentes del OneOf y unirlos
 			let lopLink = { linkID: ++this.linkID, source: companions[i], target: companions[i + 1], 
@@ -260,12 +269,19 @@ class GraphGenerator {
 			for(let i = 1; i < numberOfLinks + 1; i++) {
 				let rotation = Math.PI * i / (numberOfLinks / 2 );
 				let lid = value[i - 1];
+				
 				if(lid < 0) {
-					rotation = - (2 * Math.PI - rotation);
 					lid = -lid;
-					if(rotation === - 0) rotation = - Math.PI;
-					else if(rotation === Math.PI) rotation = - 2 * Math.PI;
+					if(rotation < Math.PI / 2 || rotation > Math.PI && rotation < 3 * Math.PI / 2) {
+						rotation += Math.PI / 2;
+					}
+					else if(rotation > Math.PI / 2 && rotation < Math.PI || rotation > 3 * Math.PI / 2 && rotation < 2 * Math.PI) {
+						rotation -= Math.PI / 2;
+					}
+					else if(rotation === 2 * Math.PI) rotation = Math.PI;
+					else if(rotation === Math.PI) rotation = 2 * Math.PI;
 				}
+				
 				this.gData.links[lid - 1].rotation = rotation;
 			}
 		});

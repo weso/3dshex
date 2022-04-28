@@ -16,7 +16,7 @@ class TresDGen {
                 'text-align': 'left',
                 'font-size': 17,
                 'font-family': 'Arial, Helvetica, sans-serif',
-                'border-bottom': '0.5px double #70dbe9'
+                'border-bottom': '0.5px double black'
             },
             description: {
                 'display': 'inline-block',
@@ -31,10 +31,11 @@ class TresDGen {
                 'justify-content': 'center',
                 'padding': '5px',
                 'border-radius': '10px',
-                'border': '1px solid #70dbe9',
-                'background': '#222',
-                'color': 'white',
-                'z-index': '1200'
+                'border': '2px solid black',
+                'background': '#acf',
+                'color': 'black',
+                'z-index': '1200',
+				'opacity': '0.8'
             }
         };
 		this.wikidataTooltips = true;
@@ -81,21 +82,32 @@ class TresDGen {
 
         Graph(document.getElementById(id))
             .graphData(gData)
-            .nodeAutoColorBy('id')
-            .nodeRelSize(2)
+			.backgroundColor("#ecf0f1")
+			.nodeOpacity(0.1)
+            .nodeRelSize(1.5)
+			/**
             .onNodeDragEnd(node => {
                 node.fx = node.x;
                 node.fy = node.y;
                 node.fz = node.z;
-            })
-            .linkWidth(link => self.highlightLinks.has(link) ? 1 : 1)
+            }) **/
+            .linkWidth(link => self.highlightLinks.has(link) ? 0.8 : 0.5)
             .linkDirectionalParticles(link => self.highlightLinks.has(link) ? 2 : 0)
             .linkDirectionalParticleWidth(1)
-            .linkColor(link => this.highlightLinks.has(link) ? 'rgba(255,0,255,1)' : 'rgba(0,255,255,0.8)')
+            .linkColor(link => this.highlightLinks.has(link) ? '#f00' : 'rgba(0,0,0,1)')
             .linkCurvature(link => link.curvature !== undefined ? link.curvature : 0.8)
             .linkCurveRotation('rotation')
             .linkDirectionalArrowLength(link => link.noarrow !== undefined ? 0 : 3.5)
-            .linkDirectionalArrowRelPos(1)
+            .linkDirectionalArrowRelPos(link => {
+				if(!link.diamond) return 1;
+				else if(link.diamond === 1)
+				{
+					let distance = Math.sqrt(Math.pow(link.source.x - link.target.x,2) + Math.pow(link.source.y - link.target.y,2) + Math.pow(link.source.z - link.target.z,2));
+					return 4 / distance;
+				}					
+				else if(link.diamond === 2) return 1;
+			})
+			.linkOpacity(0.4)
             .nodeThreeObjectExtend(true)
             .nodeThreeObject(node => {
                 const nodeEl = document.createElement('div');
@@ -250,7 +262,8 @@ class TresDGen {
 		if(!this.hiddenEdges) {
 			Graph.linkThreeObject(link => {
 				const sprite = new SpriteText(`${link.nname}` + `${link.cardinality}`);
-                sprite.color = 'lightgrey';
+                sprite.color = 'black';
+				sprite.backgroundColor = 'white';
                 sprite.textHeight = 2;
                 sprite.link = link;
 				link.sprite = sprite;
@@ -392,7 +405,7 @@ class TresDGen {
             }
         }
 
-        Graph.d3Force('charge').strength(-240);
+        Graph.d3Force('charge').strength(-200);
         return Graph;
     }
 	
