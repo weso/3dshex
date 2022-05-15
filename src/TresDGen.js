@@ -35,7 +35,7 @@ class TresDGen {
                 'background': '#acf',
                 'color': 'black',
                 'z-index': '1200',
-				'opacity': '0.8'
+				'opacity': '0.92'
             }
         };
 		this.wikidataTooltips = true;
