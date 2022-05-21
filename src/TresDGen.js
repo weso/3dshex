@@ -92,8 +92,12 @@ class TresDGen {
                 node.fz = node.z;
             }) **/
             .linkWidth(link => self.highlightLinks.has(link) ? 0.8 : 0.5)
-            .linkDirectionalParticles(link => self.highlightLinks.has(link) ? 2 : 0)
-            .linkDirectionalParticleWidth(1)
+            .linkDirectionalParticles(link => {
+				if(self.highlightLinks.has(link)) return 2;
+				else if (link.dashed) return 8;
+				else return 0;
+			})
+            .linkDirectionalParticleWidth(link => link.dashed ? 0.5 : 1)
             .linkColor(link => this.highlightLinks.has(link) ? '#f00' : 'rgba(0,0,0,1)')
             .linkCurvature(link => link.curvature !== undefined ? link.curvature : 0.8)
             .linkCurveRotation('rotation')
@@ -235,7 +239,11 @@ class TresDGen {
                             target: link.target.id,
                             nname: link.nname,
                             rotation: link.rotation,
-							cardinality: link.cardinality
+							cardinality: link.cardinality,
+							curvature: link.curvature,
+							noarrow: link.noarrow,
+							dashed: link.dashed,
+							diamond: link.diamond
                         };
                         visibleLinks.push(newLink);
                     });
@@ -318,8 +326,10 @@ class TresDGen {
                 }, 100);
             } else {
                 nodeOb.html("");
-                let closed = node.closed ? " CLOSED" : "";
                 let ats = [];
+				if (node.closed) {
+                    ats.push("<li>CLOSED</li>");
+                }
                 if (node.extra) {
                     ats.push("<li>" + node.extra + "</li>");
                 }
@@ -329,7 +339,7 @@ class TresDGen {
                 }));
                 nodeOb
                     .append(
-                        $('<div>').text(node.id + closed).css(slf.styles.title))
+                        $('<div>').text(node.id).css(slf.styles.title))
                     .append(
                         $('<div>').html('<ul style="list-style-type: none; padding: 0; margin: 0;">' + ats.join("\n") + "</ul>").css(slf.styles.description));
                 nodeOb.attr("class", "activeDetails");

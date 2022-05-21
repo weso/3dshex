@@ -18,8 +18,9 @@ function sshExTo3D() {
 
 	$("#editorcontainer").css("display", "none");
 	$("#graphcontainer").css("display", "inherit");
-	$("#autocompletecontainer").removeClass("hidden");
+	//$("#autocompletecontainer").removeClass("hidden");
 	$("#open-modal").removeClass("hidden");
+	$("#reset").removeClass("hidden");
 }
 
 let load = $('#loadex');
@@ -30,6 +31,14 @@ function loadExample() {
 	$.get('./static/genewiki.shex.txt', function(data) {
 		shExEditor.setValue(data);
 	});
+}
+
+let resetbt = $('#reset');
+
+resetbt.click(resett);
+
+function resett() {
+	location.reload();
 }
 
 $( "#nodeInput" ).keydown(function(event) {

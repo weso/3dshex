@@ -41,8 +41,8 @@ class GraphGenerator {
 						linkTarget = this.pr.getPrefixed(sha.reference);
 					}
 					else if(sha.type === "NodeConstraint") {
-						linkTarget = "_" + this.blankID;
-					    let partialNode = {id: "_" + ++this.blankID, attributes: [{ "predicate": this.checkNodeKind(sha.nodeKind), "value" : "", "facets": "" }]}
+						linkTarget = "_" + ++this.blankID;
+					    let partialNode = {id: "_" + this.blankID, attributes: [{ "predicate": this.checkNodeKind(sha.nodeKind), "value" : "", "facets": "" }]}
 						this.gData.nodes.push(partialNode);
 					}
 					let newLink = { linkID: ++this.linkID, source: this.pr.getPrefixed(shape), target: linkTarget, 
@@ -67,7 +67,7 @@ class GraphGenerator {
 						break;
 				}
 					let lopLink = { linkID: ++this.linkID, source: companions[i], target: companions[i + 1], 
-					nname: lop, cardinality: "", rotation: 0, curvature: 0, noarrow: true};
+					nname: lop, cardinality: "", rotation: 0, curvature: 0, noarrow: true, dashed: true};
 					this.gData.links.push(lopLink);
 				}
 				newNode = {id: this.pr.getPrefixed(shape), attributes: []}
