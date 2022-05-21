@@ -16,7 +16,7 @@
 <body>
 	<section id="editorcontainer">
 		<div class="centerdiv">
-			<button id="shextograph" class="btn1">Create 3D Graph</button><button id="loadex" class="btn1">Load example</button>
+			<button id="shextograph" class="btn1">Create 3D Graph</button><button id="loadex" class="btn1 hidden">Load example</button>
 		</div>
 		<div class="centerdiv">
 			<label for="shextext"></label>
@@ -27,6 +27,7 @@
 	
 	<div id="graphcontainer">
 		<div id="tooltip"></div>
+		<div class="autocomplete"><button id="reset" class="btn1 hidden">Reset</button></div>
 		<div id="autocompletecontainer" class="autocomplete hidden" style="width:300px;">
 			<input id="nodeInput" type="text" name="node" placeholder="Search...">
 		</div>
